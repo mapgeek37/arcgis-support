@@ -2,24 +2,19 @@ from __future__ import division
 print("Starting arcpy within arcsupport module...")
 import arcpy
 import logs
-import os,sys,socket,shutil,math
+import os
+import sys
+import socket
+import shutil
+import math
 from collections import defaultdict
 import codecs
 from random import randint
 
-geom = arcpy.Geometry()
-
 """
 Description: 
-arcsupport.py library contains three classes with high-level functions not provided
-by arcpy (http://desktop.arcgis.com/en/arcmap/10.3/analyze/arcpy/what-is-arcpy-.htm).
-1. The ArcTools class provides support functions and workarounds for various
-common arcpy programming tasks that are inconvenient or poorly-implemented in the
-"out-of-the-box" version of arcpy.
-2. The GeomTools class provides some geometry processing tools that are
-not available by default in arcpy, or require a Standard / Advanced license.
-3. QualityControl class provides tools to check attribute and geometry
-quality of feature classes and tables.
+arcsupport.py library extends arcpy with various high-level GIS functions.
+For details see README.md
 
 Dependencies: 
 - logs.py logging class. 
@@ -27,12 +22,12 @@ Dependencies:
 - Python 2.7.x (Python 3.x not supported)
 """
 
-
 # Configure logging tool
 import logging
 logger = logs.ArcLogger()
 logging.basicConfig()
 
+geom = arcpy.Geometry()
 
 class ArcTools(object):
 

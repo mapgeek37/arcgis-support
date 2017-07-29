@@ -1,5 +1,7 @@
 from __future__ import division
-import os,sys,socket,shutil,logging,logging.config
+import os
+import logging
+import logging.config
 import datetime
 
 """Can be removed if logs is loaded from a context where we are certain that arcpy has
