@@ -1523,14 +1523,21 @@ class GeomTools(object):
         return idx
 
     def spatialKeyFromPoint(self, point, grid_size=0.01):
+        """
+        Builds a spatial key with grid scale from Point
+        :param point: arcpy Point object
+        :param grid_size: parameter to control the rounding
+        :return:
+        """
         x = point.X
         y = point.Y
         return self.spatialKey(x, y, grid_size=grid_size)
 
     def spatialKey(self, x, y, grid_size=0.01, invert=False):
         """
-        Builds a spatial key with grid scale from a point
-        :param point: arcpy Point object
+        Builds a spatial key with grid scale from x, y coords
+        :param x: x coordinate
+        :param y: y coordinate
         :param grid_scale: parameter to control the rounding
         :return: a string key suitable for spatial indexing
         """
