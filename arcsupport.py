@@ -459,6 +459,7 @@ class ArcTools(object):
 
     def getAllItems(self, workspace):
         # Gets all contents of a workspace, including feature classes and tables
+        # List workspace contents
         self.setEnvVars(workspace,True,'Disabled','Disabled','DEFAULT')
         fcList = arcpy.ListFeatureClasses('','All')
         tblList = arcpy.ListTables('','All')
@@ -1174,7 +1175,7 @@ class ArcTools(object):
         return geoms
 
     def cleanupWorkspace(self, workspace, fcList):
-        # Deletes EMPTY feature classes in a specificied workspace (file GDB or folder).
+        # Deletes EMPTY feature classes in a specified workspace (file GDB or folder).
         # fcList can either be a list of feature classes to check (full names)
         # or the keyword 'ALL' in which case all feature classes will be checked.
         #
@@ -2100,19 +2101,64 @@ class QualityControl(object):
             logger.info("QualityControl class (updated %s). " % self.TS)
         pass
 
-    def field_name_check(self, source, field_names=list()):
+    def qc_report(self, fc):
+        """
+        Quality control report
+        :param fc: may be a workspace or an individual feature class
+        :return:
+        import imp;imp.reload(arcsupport);qctool = arcsupport.QualityControl()
+        """
+        data_type = arcpy.Describe(fc).dataType
+        features = ['FeatureClass', 'ShapeFile']
+        table_type = ['Table']
+        workspace_type = ['Workspace']
+        supported_types = features + table_type + workspace_type
+
+        logger.info('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`')
+        logger.info('Processing %s (%s)' % (fc, data_type))
+
+        if data_type not in supported_types:
+            logger.warning('Skipping layer with unsupported type: %s' % data_type)
+            return
+        if data_type in workspace_type:
+            # Process each element
+            for item in self.arctools.getAllItems(fc):
+                self.qc_report(item)
+
+        else:
+            # Type is table or feature class. Do the table processing first.
+            self.field_name_check(fc)
+            self.field_type_check(fc)
+            self.table_completeness(fc)
+            self.duplicates(fc)
+            if data_type in features:
+                # Spatial layer, additional checks
+                self.duplicate_geoms(fc)
+                self.repair_geom_zm(fc)
+                self.feature_complexity(fc)
+
+    # def full_check(self, fc):
+    #     self.field_name_check(fc)
+    #     self.field_type_check(fc)
+    #     self.table_completeness(fc)
+    #     self.repair_geom_zm(fc)
+    #     self.feature_complexity(fc)
+    #     self.duplicates(fc)
+
+    def field_name_check(self, fc, field_names=list()):
         """
         Check field names in data source
-        :param source: a data source. If not already in a ESRI-supported format,
+        :param fc: a data source. If not already in a ESRI-supported format,
         add list of field names to check in second param
         :param field_names: optional list of field names to validate
         :return: list of invalid field names
         """
+        logger.info('Checking field names in: %s' % fc)
         import re
         invalid = []
         if not field_names:
             # Use field names defined in the source.
-            field_names = self.arctools.getFieldNames(source)
+            field_names = self.arctools.getFieldNames(fc)
         allowed_patt = '^[a-z][_a-z0-9]*$'
         for field in field_names:
             m = re.match(allowed_patt, field, re.IGNORECASE)
@@ -2135,8 +2181,8 @@ class QualityControl(object):
         Log warnings that we found.
         :return:
         """
+        logger.info('Checking field types in: %s' % fc)
         for field in arcpy.ListFields(fc):
-            # in ['Integer', 'SmallInteger']
             if field.type in ['Single', 'Double']:
                 vals = self.arctools.listUniqueValues(fc, field.name, silent=True)
                 has_decimal = False
@@ -2156,6 +2202,7 @@ class QualityControl(object):
                         has_non_numeric = True
                 if not has_non_numeric:
                     logger.warn('Field %s (type %s) contains all numbers' % (field.name, field.type))
+        logger.info('Done checking field types.')
 
     def table_completeness(self, fc):
         """
@@ -2166,7 +2213,7 @@ class QualityControl(object):
         fields = self.arctools.getFieldNames(fc)
         null_counts = defaultdict(int)
         row_count = self.arctools.getCount(fc)
-        logger.info('Checking table completeness on %s' % fc)
+        logger.info('Checking table completeness in: %s' % fc)
         with arcpy.da.SearchCursor(fc, fields) as c:
             for row in c:
                 srow = self.arctools.getSmartRow(fields, row)
@@ -2180,9 +2227,14 @@ class QualityControl(object):
             logger.info('No null or blank records found.')
             return
         for (field, nulls) in null_counts.items():
-            pct_null = (nulls / row_count) * 100.0
-            logger.info('Field %s contains %s%s null or blank records.' % (
-                field, pct_null, '%'))
+            pct_null = int(round(((nulls / row_count) * 100.0), 0))
+            msg = 'Field %s contains %s%% null or blank records.' % (
+                field, pct_null)
+            if pct_null > 0:
+                logger.warning(msg)
+            else:
+                logger.info(msg)
+        logger.info('Done checking table completeness.')
 
     def null_blank_check(self, val):
         """
@@ -2203,6 +2255,7 @@ class QualityControl(object):
         with no SR in a workspace
         :return:
         """
+        logger.info('Checking consistency of spatial references in: %s' % filepath)
         if not os.path.exists(filepath):
             logger.warn('%s is not a valid workspace' % filepath)
             logger.warn('Use a folder or geodatabase path.')
@@ -2233,7 +2286,7 @@ class QualityControl(object):
                     logger.info('%s (WKID %s) %s items: %s' % (
                         sr_name, wkid, len(datasets), ', '.join(datasets)))
                     if sr_name == 'Unknown':
-                        logger.warn('Datasets with NO PROJECTION: %s' % ', '.join(datasets))
+                        logger.warn('Datasets with NO SPATIAL REFERENCE: %s' % ', '.join(datasets))
             else:
                 logger.info('Unsupported workspace type: %s' % desc.dataType)
         except IOError:
@@ -2246,6 +2299,7 @@ class QualityControl(object):
         File Geodatabase.
         :return:
         """
+        logger.info('Repairing feature geometry in: %s' % fc)
         try:
             result = arcpy.RepairGeometry_management(fc)
         except arcpy.ExecuteError:
@@ -2301,7 +2355,7 @@ class QualityControl(object):
         part_overlimit = 0
         vertex_max = 0
         part_max = 0
-        logger.info('Checking %s features in %s' % (
+        logger.info('Checking complexity of %s features in %s' % (
             self.arctools.getCount(fc), fc))
         with arcpy.da.SearchCursor(fc, ['SHAPE@']) as c:
             for row in c:
@@ -2337,21 +2391,28 @@ class QualityControl(object):
         """
         # Duplicate attributes: all fields except OID, SHAPE
         # Duplicate geom: SHAPE
-        import hashlib
+
         fields = self.arctools.getFieldNames(fc)
-        oid_field = arcpy.Describe(fc).OIDFieldName
-        geom_field = arcpy.Describe(fc).SHAPEFieldName
-        if oid_field in fields:
-            fields.remove(oid_field)
-        if geom_field in fields:
-            fields.remove(geom_field)
+        try:
+            oid_field = arcpy.Describe(fc).OIDFieldName
+            if oid_field in fields:
+                fields.remove(oid_field)
+        except AttributeError:
+            # Non_ESRI source without an object id
+            pass
+        try:
+            geom_field = arcpy.Describe(fc).SHAPEFieldName
+            if geom_field in fields:
+                fields.remove(geom_field)
+        except AttributeError:
+            # Not a spatial layer
+            pass
 
         # Check for duplicate attributes
         logger.info('Checking for duplicate attributes in %s' % fc)
         collisions = defaultdict(int)
         with arcpy.da.SearchCursor(fc, fields) as c:
             for row in c:
-                # hash = hashlib.md5(row).hexdigest()
                 collisions[row] += 1
         has_dup = False
         for (row, count) in collisions.items():
@@ -2361,7 +2422,10 @@ class QualityControl(object):
         if not has_dup:
             logger.info('No duplicate attributes found.')
 
+    def duplicate_geoms(self, fc):
         # Check geometry
+        oid_field = arcpy.Describe(fc).OIDFieldName
+        import hashlib
         logger.info('Checking for duplicate gemeotry in %s' % fc)
         fields = [oid_field, "SHAPE@WKT"]
         collisions = defaultdict(list)
