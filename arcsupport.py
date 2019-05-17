@@ -2435,7 +2435,7 @@ class QualityControl(object):
         has_dup = False
         for (hash, oid_list) in collisions.items():
             if len(oid_list) > 1:
-                logger.warn('%s duplicate geometries in OIDs: %s' % (len(oid_list), oid_list))
+                logger.warning('%s duplicate geometries in OIDs: %s' % (len(oid_list), oid_list))
                 has_dup = True
         if not has_dup:
             logger.info('No duplicate geometries found.')

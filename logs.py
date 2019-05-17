@@ -61,6 +61,11 @@ class ArcLogger(logging.Logger):
         arcpy.AddMessage(msg)
         return super(ArcLogger, self).info(msg, *args, **kwargs)
 
+    # Add warn() for compatibility with older code
+    def warn(self, msg, *args, **kwargs):
+        arcpy.AddWarning(msg)
+        return super(ArcLogger, self).warning(msg, *args, **kwargs)
+
     def warning(self, msg, *args, **kwargs):
         arcpy.AddWarning(msg)
         return super(ArcLogger, self).warning(msg, *args, **kwargs)
