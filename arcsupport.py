@@ -29,6 +29,7 @@ logging.basicConfig()
 
 geom = arcpy.Geometry()
 
+
 class ArcTools(object):
 
     def __init__(self, silent=False):
@@ -2119,7 +2120,7 @@ class QualityControl(object):
             if m:
                 logger.info('Field name %s ok.' % field)
             else:
-                logger.warn('Field name %s not valid for ArcGIS' % field)
+                logger.warning('Field name %s not valid for ArcGIS' % field)
                 invalid.append(field)
         if invalid:
             logger.info('For a list of field name rules, see: '
@@ -2144,7 +2145,7 @@ class QualityControl(object):
                     if val % 1 != 0.0:
                         has_decimal = True
                 if not has_decimal:
-                    logger.warn('Field %s (type %s) contains all integers' % (field.name, field.type))
+                    logger.warning('Field %s (type %s) contains all integers' % (field.name, field.type))
 
             if field.type == 'String':
                 vals = self.arctools.listUniqueValues(fc, field.name, silent=True)
@@ -2155,7 +2156,7 @@ class QualityControl(object):
                     except ValueError:
                         has_non_numeric = True
                 if not has_non_numeric:
-                    logger.warn('Field %s (type %s) contains all numbers' % (field.name, field.type))
+                    logger.warning('Field %s (type %s) contains all numbers' % (field.name, field.type))
 
     def table_completeness(self, fc):
         """
@@ -2204,8 +2205,8 @@ class QualityControl(object):
         :return:
         """
         if not os.path.exists(filepath):
-            logger.warn('%s is not a valid workspace' % filepath)
-            logger.warn('Use a folder or geodatabase path.')
+            logger.warning('%s is not a valid workspace' % filepath)
+            logger.warning('Use a folder or geodatabase path.')
             return False
         try:
             desc = arcpy.Describe(filepath)
@@ -2224,7 +2225,7 @@ class QualityControl(object):
 
                 # Print spatial references we found, with warnings
                 if len(sr_list) > 1:
-                    logger.warn('Warning: more than one spatial reference found in this workspace.')
+                    logger.warning('Warning: more than one spatial reference found in this workspace.')
                 logger.info('Most common spatial references:')
                 for (sr_name, wkid) in sorted(
                         sr_list, key=lambda x: len(sr_list[x]),
@@ -2233,11 +2234,11 @@ class QualityControl(object):
                     logger.info('%s (WKID %s) %s items: %s' % (
                         sr_name, wkid, len(datasets), ', '.join(datasets)))
                     if sr_name == 'Unknown':
-                        logger.warn('Datasets with NO PROJECTION: %s' % ', '.join(datasets))
+                        logger.warning('Datasets with NO PROJECTION: %s' % ', '.join(datasets))
             else:
                 logger.info('Unsupported workspace type: %s' % desc.dataType)
         except IOError:
-            logger.warn('Cannot open workspace %s' % filepath)
+            logger.warning('Cannot open workspace %s' % filepath)
 
     def repair_geom_zm(self, fc, remove_z=False, remove_m=False):
         """
@@ -2256,7 +2257,7 @@ class QualityControl(object):
         elif result.maxSeverity == 1:
             logger.info('Repaired %s geometry problems' % result.messageCount)
         else:
-            logger.warn('Repair geometry failed on %s' % fc)
+            logger.warning('Repair geometry failed on %s' % fc)
 
         zm_copy = ''
         if remove_z and arcpy.Describe(fc).hasZ:
@@ -2286,7 +2287,7 @@ class QualityControl(object):
                 output_no_zm = os.path.join(output_gdb, output_fc)
             result = arcpy.FeatureClassToFeatureClass_conversion(fc, output_gdb, output_fc)
             if not result.status == 4:
-                logger.warn('Cannot make a copy in %s' % output_no_zm)
+                logger.warning('Cannot make a copy in %s' % output_no_zm)
                 return
             logger.info('Copied to %s with %s geometry removed.' % (output_no_zm, zm_copy))
 
@@ -2317,10 +2318,10 @@ class QualityControl(object):
                     if geom.pointCount > vertex_limit:
                         vertex_overlimit += 1
         if vertex_overlimit:
-            logger.warn('%s complex features with more than %s vertices.' % (
+            logger.warning('%s complex features with more than %s vertices.' % (
                 vertex_overlimit, vertex_limit))
         if part_overlimit:
-            logger.warn('%s features with more than %s parts.' % (
+            logger.warning('%s features with more than %s parts.' % (
                 part_overlimit, part_limit))
         if vertex_overlimit or part_overlimit:
             logger.info('Tips to reduce complex features: http://arcg.is/2pRuAk9')
@@ -2356,7 +2357,7 @@ class QualityControl(object):
         has_dup = False
         for (row, count) in collisions.items():
             if count > 1:
-                logger.warn('%s rows with duplicate attributes: %s' % (count, list(row)))
+                logger.warning('%s rows with duplicate attributes: %s' % (count, list(row)))
                 has_dup = True
         if not has_dup:
             logger.info('No duplicate attributes found.')
@@ -2378,7 +2379,7 @@ class QualityControl(object):
         has_dup = False
         for (hash, oid_list) in collisions.items():
             if len(oid_list) > 1:
-                logger.warn('%s duplicate geometries in OIDs: %s' % (len(oid_list), oid_list))
+                logger.warning('%s duplicate geometries in OIDs: %s' % (len(oid_list), oid_list))
                 has_dup = True
         if not has_dup:
             logger.info('No duplicate geometries found.')

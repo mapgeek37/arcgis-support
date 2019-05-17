@@ -18,10 +18,20 @@ Wrapper around the standard Python logger with support for arcpy logger
 (used to display messages in the Results window).
 """
 
+# Log locations and paths
+base_dir = os.path.dirname(os.path.realpath(__file__))
+project_root = os.path.realpath(base_dir)
+log_folder = os.path.join(project_root, 'logs')
+
+# Logging format
+screen_fmt = logging.Formatter(
+    '%(asctime)s:%(levelname)s:%(module)s(%(lineno)d) - %(message)s'
+)
+
 
 class ArcLogger(logging.Logger):
 
-    __version__ = "1.7"
+    __version__ = "1.8"
 
     def __init__(self, name="arcgis_logger", level=logging.INFO, silent=False):
         self.name = name
@@ -30,14 +40,34 @@ class ArcLogger(logging.Logger):
             print("Starting logging tool...")
         super(ArcLogger, self).__init__(name, level)
         sh = logging.StreamHandler()
+        sh.setLevel(level)
         self.addHandler(sh)
-        pass
+
+        # Always log to a file on disk
+        log_filename = os.path.join(log_folder, name + '.log')
+        fh = logging.FileHandler(log_filename)
+        fh.setLevel(level)
+        fh.setFormatter(screen_fmt)
+        self.addHandler(fh)
 
     def getTS(self):
         # Gets a timestamp in a default format (day month time)
         startTime = datetime.datetime.now()
         timeStamp = startTime.strftime("%d%b_%H%M")
         return timeStamp
+
+    # Override default info, warning, error methods.
+    def info(self, msg, *args, **kwargs):
+        arcpy.AddMessage(msg)
+        return super(ArcLogger, self).info(msg, *args, **kwargs)
+
+    def warning(self, msg, *args, **kwargs):
+        arcpy.AddWarning(msg)
+        return super(ArcLogger, self).warning(msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        arcpy.AddError(msg)
+        return super(ArcLogger, self).error(msg, *args, **kwargs)
 
     def setupDiskLog(self, logFolder, description='', timeStamp=None):
         # Configures a file to log to disk. Description can be any user text.
@@ -83,17 +113,17 @@ class ArcLogger(logging.Logger):
         # Cannot assume that the arcpy module has already been loaded
         import arcpy
         arcpy.AddMessage(msg)
-        self.disk(msg, self.diskLogName, True)
+        # self.disk(msg, self.diskLogName, True)
 
     def arcWarn(self, msg):
         import arcpy
         arcpy.AddWarning(msg)
-        self.disk(msg, self.diskLogName, True)
+        # self.disk(msg, self.diskLogName, True)
 
     def arcError(self, msg):
         import arcpy
         arcpy.AddError(msg)
-        self.disk(msg, self.diskLogName, True)
+        # self.disk(msg, self.diskLogName, True)
 
     def logLevels(self):
         # Print message at different log levels
