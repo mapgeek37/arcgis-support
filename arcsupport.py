@@ -461,6 +461,7 @@ class ArcTools(object):
 
     def getAllItems(self, workspace):
         # Gets all contents of a workspace, including feature classes and tables
+        # List workspace contents
         self.setEnvVars(workspace,True,'Disabled','Disabled','DEFAULT')
         fcList = arcpy.ListFeatureClasses('','All')
         tblList = arcpy.ListTables('','All')
@@ -2194,6 +2195,7 @@ class QualityControl(object):
                         has_non_numeric = True
                 if not has_non_numeric:
                     logger.warning('Field %s (type %s) contains all numbers' % (field.name, field.type))
+
         logger.info('Done checking field types.')
 
     def table_completeness(self, fc):
@@ -2383,7 +2385,7 @@ class QualityControl(object):
         """
         # Duplicate attributes: all fields except OID, SHAPE
         # Duplicate geom: SHAPE
-        import hashlib
+
         fields = self.arctools.getFieldNames(fc)
         try:
             oid_field = arcpy.Describe(fc).OIDFieldName
