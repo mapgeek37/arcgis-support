@@ -10,6 +10,7 @@ import math
 from collections import defaultdict
 import codecs
 from random import randint
+import logging
 
 """
 Description: 
@@ -23,10 +24,9 @@ Dependencies:
 """
 
 # Configure logging tool
-import logging
-logger = logs.ArcLogger()
-logging.basicConfig()
 
+logger = logs.ArcLogger()
+# logging.basicConfig()
 geom = arcpy.Geometry()
 
 
