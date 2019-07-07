@@ -55,8 +55,6 @@ class Tool(object):
     def execute(self, parameters, messages):
         """The source code of the tool."""
         dataset = parameters[0].valueAsText
-        # arcpy.AddMessage('arcpy %s' % dataset)
-        # logger.arcMessage('logger %s' % dataset)
         logger.info('Running quality report on: %s' % dataset)
         qctool.qc_report(dataset)
         return

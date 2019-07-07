@@ -191,5 +191,6 @@ class ArcLogger(logging.Logger):
         else:
             pass
 
+
 logging.setLoggerClass(ArcLogger)
 logging.basicConfig()

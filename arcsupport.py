@@ -10,7 +10,6 @@ import math
 from collections import defaultdict
 import codecs
 from random import randint
-import logging
 import hashlib
 
 """
@@ -27,7 +26,6 @@ Dependencies:
 # Configure logging tool
 
 logger = logs.ArcLogger()
-# logging.basicConfig()
 geom = arcpy.Geometry()
 
 
@@ -67,15 +65,15 @@ class ArcTools(object):
         if os.path.exists(dest):
             logger.p3("File GDB %s already exists" % dest)
             return False
-        if socket.gethostname().upper() == 'FLOPSY':
-            # For unknown reasons, create File GDB may fail, and crash the python interpreter too
-            # Instead, copy from the empty file GDB.
-            if os.path.exists(self.blankFileGDB):
-                logger.p5("Copying over the blank fgdb...")
-                shutil.copytree(src,dest,ignore=shutil.ignore_patterns('*.lock'))
-            else:
-                logger.p5("No empty template GDB found!")
-                return False
+        # if socket.gethostname().upper() == 'FLOPSY':
+        #     # For unknown reasons, create File GDB may fail, and crash the python interpreter too
+        #     # Instead, copy from the empty file GDB.
+        #     if os.path.exists(self.blankFileGDB):
+        #         logger.p5("Copying over the blank fgdb...")
+        #         shutil.copytree(src,dest,ignore=shutil.ignore_patterns('*.lock'))
+        #     else:
+        #         logger.p5("No empty template GDB found!")
+        #         return False
         else:
             arcpy.AddMessage("Creating file GDB: %s" % dest)
             arcpy.CreateFileGDB_management(path,name)
@@ -2221,8 +2219,8 @@ class QualityControl(object):
             logger.info('No null or blank records found.')
             return
         for (field, nulls) in null_counts.items():
-            pct_null = int(round(((nulls / row_count) * 100.0), 0))
-            msg = 'Field %s contains %s%% null or blank records.' % (
+            pct_null = (nulls / row_count) * 100.0
+            msg = 'Field %s contains %.6f%% null or blank records.' % (
                 field, pct_null)
             if pct_null > 0:
                 logger.warning(msg)

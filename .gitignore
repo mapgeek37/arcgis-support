@@ -2,3 +2,5 @@
 *.pyc
 Changelist
 __temp__
+logs/*
+!logs/.gitkeep
